@@ -3,9 +3,18 @@ from django.db import models
 
 
 class User(AbstractUser):
-    username =models.CharField(max_length=150, unique=True)
-    password = models.CharField(max_length=128)
-    
+    following = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        related_name='followers',
+        blank=True
+    )    
+
+    # Query following: users that this user is following
+    # user.following.all()
+
+    # Query followers: users that follow this user
+    # user.followers.all()
     def __str__(self):
         return str(self.username)
 
@@ -24,27 +33,14 @@ class Post(models.Model):
         if not new_content:
             raise ValueError("New content cannot be empty")
         self.content = new_content
-        self.updated_at = models.DateField(auto_now_add=True)
         self.save()
 
     def __str__(self):
         return str(self.content)[:20]
 
-class Following(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
-    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def get_followers(self):
-        return self.follower.followers.all()
-
-    def __str__(self):
-        return f"{self.user.username} is followed by {self.follower.username}"
-
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='liked')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

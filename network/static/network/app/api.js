@@ -4,7 +4,7 @@ import getCSRFToken from './utils.js';
 const API = {
     async request(url, options = {}) {
         const csrfToken = getCSRFToken();
-
+        console.log('CSRF Token: ', csrfToken);
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',

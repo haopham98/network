@@ -1,0 +1,27 @@
+{% extends "network/layout.html" %}
+{% load static %}
+
+
+{% block body %}
+    <div id="profile-container" class="container">
+        {% csrf_token %}
+        <div id="profile-header">
+          
+        </div>
+        <br>
+        <div id="profile-posts">
+           
+        </div>
+        <div id="pagination-controls">
+        </div>
+    </div>
+    
+{% endblock %}
+
+{% block script %}
+    <script type="module">
+        import { ProfileApp } from "{% static 'network/profile/profileApp.js' %}";
+        const username = "{{ username }}";
+        new ProfileApp(username);
+    </script>
+{% endblock %}

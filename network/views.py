@@ -77,6 +77,23 @@ def index(request):
         "title": "Network",
     })
 
+def profile(request, username):
+    """
+    Render the profile page for the current user
+    """
+    if request.user.is_authenticated:
+        user = User.objects.get(username=username)
+        if user != request.user:
+            return HttpResponse("Unauthorized", status=401)
+        
+        return render(request, "network/profile.html", {
+            "title": "Profile",
+            "username": user.username,
+            "email": user.email
+        })
+    else:
+        return HttpResponseRedirect(reverse("login"))
+
 def all_posts(request):
     """
     Render the index page for the netork app
@@ -200,57 +217,81 @@ def post_detail(request, post_id):
         return JsonResponse(post_data, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+def profile_page(request, username):
+    """
+    Render the profile page for the current user
+    """
+    if request.method == "GET":
 
+        if not request.user.is_authenticated:
+            return HttpResponseRedirect(reverse("login"))
+        
+        try:
+            profile_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return JsonResponse({"error": "User not found"}, status=404)
+        context = {
+            "username": profile_user.username,
+        }
+        return render(request, "network/profile.html", context)
+
+@login_required
 def user_profile(request, username):
     """
     Get page number of posts by the user
     Get user profile information including posts, following count, and followers count, isFollowing
     """
 
-    if request.method == "GET":
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return JsonResponse({"error": "User not found"}, status=404)
+    if request.user.is_authenticated:
+        if request.method == "GET":
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return JsonResponse({"error": "User not found"}, status=404)
     
-        following_count = user.following.count()
-        follwers_count = user.followers.count()
+            following_count = user.following.count()
+            follwers_count = user.followers.count()
 
-        is_following = user.followers.filter(id=request.user.id).exists() if request.user.is_authenticated else False
+            is_following = user.followers.filter(id=request.user.id).exists() if request.user.is_authenticated else False
 
-        # get posts by the user
-        allposts = Post.objects.filter(author=user).order_by("-created_at")
-        page_number = request.GET.get("page", 1)
-        paginator = Paginator(allposts, 10)
-        try:
-            posts = paginator.page(page_number)
-        except Exception as e:
-            return JsonResponse({ "error": "Invalid page number" }, status=400)
+            # get posts by the user
+            allposts = Post.objects.filter(author=user).order_by("-created_at")
+            page_number = request.GET.get("page", 1)
+            paginator = Paginator(allposts, 10)
+            try:
+                posts = paginator.page(page_number)
+            except Exception as e:
+                return JsonResponse({ "error": "Invalid page number" }, status=400)
 
-        posts_data = []
-        for post in posts:
-            like_count = Like.objects.filter(post=post).count()
-            posts_data.append({
-                "id": post.id,
-                "content": post.content,
-                "author": post.author.username,
-                "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                "like_count": like_count,
-                "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
+            posts_data = []
+            for post in posts:
+                like_count = Like.objects.filter(post=post).count()
+                posts_data.append({
+                    "id": post.id,
+                    "content": post.content,
+                    "author": post.author.username,
+                    "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "like_count": like_count,
+                    "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
+                })
+
+            return JsonResponse({
+                "username": user.username,
+                "current_user": request.user.username if request.user.is_authenticated else None,
+                "name": user.get_full_name(),
+                "email": user.email,
+                "following_count": following_count,
+                "followers_count": follwers_count,
+                "is_following": is_following,
+                "posts": posts_data,
+                "page": {
+                    "number": posts.number,
+                    "total_pages": paginator.num_pages
+                }
             })
-
-        return JsonResponse({
-            "username": user.username,
-            "following_count": following_count,
-            "followers_count": follwers_count,
-            "is_following": is_following,
-            "posts": posts_data,
-            "page": {
-                "number": posts.number,
-                "total_pages": paginator.num_pages
-            }
-        }, status=200)
-    return JsonResponse({"error": "Method not allowed" }, status=405)
+        return JsonResponse({"error": "Method not allowed" }, status=405)
+    else:
+        return HttpResponseRedirect(reverse("login"))
 
 
 @login_required
@@ -276,16 +317,27 @@ def follow_toggle(request, username):
         if request.user.following.filter(id=user_to_follow.id).exists():
             user_to_follow.followers.remove(request.user)
             current_user.following.remove(user_to_follow)
+            following_count = user_to_follow.followers.count()
+            follower_count = user_to_follow.following.count()
+
             return JsonResponse({
+                "status": HttpResponse.status_code,
                 "message": f"You have unfollowd {user_to_follow.username}",
-                "is_following": False
+                "is_following": False,
+                "following_count": following_count,
+                "follower_count": follower_count
             })
         else:
             user_to_follow.following.add(current_user)
             current_user.following.add(user_to_follow)
+            following_count = user_to_follow.followers.count()
+            follower_count = user_to_follow.following.count()
             return JsonResponse({
+                "status" : HttpResponse.status_code,
                 "message": f"You are now following {user_to_follow.username}",
-                "is_following": True
+                "is_following": True,
+                "following_count": following_count,
+                "follower_count": follower_count
             })
     return JsonResponse({"error": "Method not allowed"}, status=405)
 

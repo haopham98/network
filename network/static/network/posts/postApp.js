@@ -1,11 +1,13 @@
-import API from './api.js';
-import DOM from './dom.js';
+import API from '../app/api.js';
+import DOM from '../app/dom.js';
 import PostRenderer from './renderer.js';
+import UIUpdater from '../app/uiUpdater.js';
 
 
-class NetworkApp {
+
+class PostApp {
     constructor() {
-        console.log('Initializing NetworkApp...');
+
         this.postsContainer = DOM.get('#posts-container');
         this.createPostForm = DOM.get('#create-post-form');
         this.createPostInput = DOM.get('#post-content');
@@ -17,12 +19,10 @@ class NetworkApp {
     }
 
     init() {
-        console.log('NetworkApp initialized');
         this.loadPosts()
     }
 
     setupEventListeners() {
-        console.log('Setting up event listeners...');
         if(this.createPostForm) {
             this.createPostForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -256,7 +256,6 @@ class NetworkApp {
             }
 
             DOM.clear(this.postsContainer);
-            console.log('Res: ', res)
             let is_authenticated = res.is_authenticated || false;
             res.posts.forEach(post => {
                 // append is_authenticated to post object
@@ -266,6 +265,7 @@ class NetworkApp {
             });
             this.currentPage = res.page.number || 1;
             this.renderPagination(res.page.number, res.page.total_pages);
+            
         }
         catch (error) {
             console.error('Failed to load posts: ', error);
@@ -275,4 +275,4 @@ class NetworkApp {
 
 }
 
-export default NetworkApp;
+export default PostApp;

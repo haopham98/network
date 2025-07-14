@@ -1,12 +1,12 @@
-import getCSRFToken from './utils.js';
-import DOM from './dom.js';
+import getCSRFToken from '../app/utils.js';
+import DOM from '../app/dom.js';
 
 const PostRenderer = {
     render(post) {
         const postElement = DOM.create('div', 'post');
         postElement.innerHTML = `
             <div class="post-header">
-            <span class="post-author">${post.author}</span>
+            <a href="/profile/${post.author}" class="post-author">${post.author}</a> 
             <p class="post-date">${post.created_at}</p> 
             </div>
             <div class="post-body">

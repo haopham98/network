@@ -52,9 +52,8 @@ export class ProfileApp {
         // Render user posts
         const response = await API.request(`/user/${this.username}?page=${page}`)
         profileHeaderRenderer(response);
-
         response.posts.forEach(post => {
-            const postElement = PostRenderer.render(post);
+            const postElement = PostRenderer.render(this.username, post);
             DOM.append(this.profilePost, postElement);
         });
 

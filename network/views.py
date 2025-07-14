@@ -74,6 +74,7 @@ def index(request):
     Render the index page for the network app
     """
     return render(request, "network/index.html", {
+        "username": request.user.username if request.user.is_authenticated else None,
         "title": "Network",
     })
 

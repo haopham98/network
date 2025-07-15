@@ -16,12 +16,10 @@ const PostRenderer = {
                 </span>
             </div>
             <div class="post-actions">
-                
-                ${post.is_authenticated ? `
-                    <button class="like-button" data-post-id="${post.id}">
-                        ${post.liked_by_user ? 'Unlike' : 'Like'}
-                    </button>
-                    ` : ''}
+                <button class="like-button" data-post-id="${post.id}">
+                    ${post.liked_by_user ? 'Unlike' : 'Like'}
+                </button>
+                   
                 ${username && username === post.author ? `
                     <button class="edit-button" data-post-id="${post.id}">Edit</button>
                 ` : ''}

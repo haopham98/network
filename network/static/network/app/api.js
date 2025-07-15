@@ -14,6 +14,13 @@ const API = {
         options = { ...defaultOptions, ...options };
         try {
             const response = await fetch(url, options);
+            // if (response.status === 403 || response.status === 401) {
+            //     const errorData = await response.json();
+            //     console.error('API request failed with status: ', response.status, errorData);
+            //     if (errorData.redirect) {
+            //         window.location.href = errorData.redirect;
+            //     }
+            // }
             if (!response.ok) {
                 return response.json().then(err => {
                     return Promise.reject({

@@ -192,9 +192,8 @@ class PostApp {
                     post_id: postId
                 })
             });
-            console.log('API response status:', response);
 
-            if (response.error) {
+            if (response.status === 403 || response.status === 401) {
                 console.error('Error toggling like: ', response.error);
                 return;
             }

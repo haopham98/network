@@ -162,6 +162,14 @@ def like_post(request, post_id):
     """
     Like a post by the current user
     """
+
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "Login required to like posts."
+           # "redirect": reverse("login")
+        }, status=401)
+
+
     if request.method == "POST":
         try:
             post = Post.objects.get(id=post_id)
@@ -189,7 +197,12 @@ def like_post(request, post_id):
                 "post_id": post_id,
                 "like_count": like_count
             }, status=201)
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    return JsonResponse(
+        {
+            "error": "Method not allowed",
+            "status": 405
+         }, 
+        status=405)
     
 
 def post_detail(request, post_id):
@@ -404,3 +417,58 @@ def edit_post(request, post_id):
             "post_id": post.id
             }, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@login_required
+def following(request):
+    """
+    Render the following page for the current user
+    """
+    if request.method == "GET":
+        return render(request, "network/following.html", {
+            "username": request.user.username,
+            "title": "Following"
+        })
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@login_required
+def following_posts(request):
+    """
+    Get post from users that the current user is following 
+    except the current user
+    """
+
+    if request.method == "GET":
+        following_users = request.user.following.all()
+        following_posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
+        page_number = request.GET.get("page", 1)
+        paginator = Paginator(following_posts, 10)
+        try:
+            posts = paginator.page(page_number)
+        except Exception as e:
+            return JsonResponse({"error": "Invalid page number"}, status=400)
+
+        posts_data = []
+
+        for post in posts:
+            like_count = Like.objects.filter(post=post).count()
+            like_by_user = Like.objects.filter(post=post, user=request.user).exists()
+            posts_data.append({
+                "id": post.id,
+                "content": post.content,
+                "author": post.author.username,
+                "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "like_count": like_count,
+                "liked_by_user": like_by_user,
+                "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
+            })
+        
+        return JsonResponse({
+            "status": HttpResponse.status_code,
+            "posts": posts_data,
+            "page": {
+                "number": posts.number,
+                "total_pages": paginator.num_pages
+            }
+        })
+

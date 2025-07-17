@@ -17,5 +17,7 @@ urlpatterns = [
     path("create_post", views.create_post, name="create_post"),
     path("like/<int:post_id>", views.like_post, name="like_post"),
     path("follow/<str:username>", views.follow_toggle, name="follow_toggle"),
-    path("edit_post/<int:post_id>", views.edit_post, name="edit_post")
+    path("edit_post/<int:post_id>", views.edit_post, name="edit_post"),
+    path("following/", views.following, name="following"),
+    path("following_posts/", views.following_posts, name="following_posts")
 ]

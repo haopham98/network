@@ -6,13 +6,18 @@ import UIUpdater from '../app/uiUpdater.js';
 
 
 class PostApp {
-    constructor() {
+    constructor(username) {
+        this.username = username;
 
         this.postsContainer = DOM.get('#posts-container');
         this.createPostForm = DOM.get('#create-post-form');
         this.createPostInput = DOM.get('#post-content');
         this.createPostButton = DOM.get('#post-btn');
         this.currentPage = 1;
+
+        this.isEditing = false;
+        this.currentEditingPostId = null;
+
         this.setupEventListeners();
         this.init();
         
@@ -38,8 +43,13 @@ class PostApp {
             }
 
             if (e.target.classList.contains('edit-button')) {
-                e.preventDefault();
-                this.handleEditPost(e);
+                e.preventDefault(); 
+                if (this.isEditing && this.currentEditingPostId) {
+                    alert('Please finish editing the current post');
+                    return;
+                }
+                
+                await this.handleEditPost(e);
             }
 
             if (e.target.classList.contains('save-post-btn')) {
@@ -79,6 +89,7 @@ class PostApp {
                 console.error('Error updating post: ', response.error);
                 return;
             }
+            this.resetEditingState();
             await this.loadPosts(this.currentPage);
         }
         catch (error) {
@@ -102,6 +113,12 @@ class PostApp {
             return;
         }
         try {
+            this.isEditing = true;
+            this.currentEditingPostId = postId;
+            
+            this.disableAllEditingButtons();
+            this.disablePostCreation();
+
             const post = await API.request(`/posts/${postId}`, {
                 method: 'GET'
             })
@@ -110,6 +127,7 @@ class PostApp {
 
             if (!postElement) {
                 console.error('Post element not found');
+                this.resetEditingState();
                 return;
             }
             postElement.innerHTML = '';
@@ -117,11 +135,46 @@ class PostApp {
         }
         catch (error) {
             console.error('Failed to load post for editing: ', error);
+            this.resetEditingState();
         }
         
 
     }
 
+    disableAllEditingButtons() {
+        const editButtons = DOM.getAll('.edit-button');
+        editButtons.forEach(button => {
+           if (button.dataset.postId !== this.currentEditingPostId) {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+            }
+        });
+    }
+
+    disablePostCreation() {
+        if (this.createPostForm) {
+            this.createPostForm.style.readonly = true
+            this.createPostInput.disabled = true;
+            this.createPostButton.disabled = true;
+        }
+    }
+
+    resetEditingState() {
+        this.isEditing = false;
+        this.currentEditingPostId = null;
+        
+        const editButtons = DOM.getAll('.edit-button');
+        editButtons.forEach(button => {
+            button.disabled = false;
+            button.style.opacity = '1';
+        })
+
+        if (this.createPostForm) {
+            this.createPostForm.style.display = 'block';
+            this.createPostInput.disabled = false;
+            this.createPostButton.disabled =false;
+        }
+    }
 
     // Event handler for like button toggle
     async handleLikeToggle(e) {
@@ -139,9 +192,8 @@ class PostApp {
                     post_id: postId
                 })
             });
-            console.log('API response status:', response);
 
-            if (response.error) {
+            if (response.status === 403 || response.status === 401) {
                 console.error('Error toggling like: ', response.error);
                 return;
             }
@@ -242,12 +294,20 @@ class PostApp {
     }
 
     async loadPosts(page) {
+        if (this.isEditing) {
+            const confirmNavigation = confirm('You are currently editing a post.');
+            if (!confirmNavigation) {
+                return;
+            }
+        }
+
+        this.resetEditingState();
+
         if (!this.postsContainer) {
             console.error('Posts container not found');
             return;
         }
         const url = page ? `/posts?page=${page}` : '/posts';
-        console.log('Loading posts from: ', url);
         try {
             const res = await API.request(url);
 
@@ -260,7 +320,7 @@ class PostApp {
             res.posts.forEach(post => {
                 // append is_authenticated to post object
                 post.is_authenticated = is_authenticated;
-                const postElement = PostRenderer.render(post);
+                const postElement = PostRenderer.render(this.username, post);
                 DOM.append(this.postsContainer, postElement);                       
             });
             this.currentPage = res.page.number || 1;

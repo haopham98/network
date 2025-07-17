@@ -15,15 +15,15 @@ function getPageContext(path) {
 
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const path = window.location.pathname;
-    const pageContext = getPageContext(path);
-    if (pageContext === "home"){
-        new PostApp();
-    }
-    // else if (pageContext === "profile") {
-    //     const username = path.split('/')[2];
-    //     new ProfileApp(username);
-    // }
+// document.addEventListener('DOMContentLoaded', () => {
+//     const path = window.location.pathname;
+//     const pageContext = getPageContext(path);
+//     if (pageContext === "home"){
+//         new PostApp();
+//     }
+//     // else if (pageContext === "profile") {
+//     //     const username = path.split('/')[2];
+//     //     new ProfileApp(username);
+//     // }
     
-});
+// });

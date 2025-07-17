@@ -10,7 +10,8 @@ const UIUpdater = {
     updateLikeButton(postId, liked) {
         const likeButton = DOM.get(`.like-button[data-post-id="${postId}"]`);
         if (likeButton) {
-            likeButton.textContent = liked ? 'Unlike' : 'Like';
+            likeButton.textContent = liked ? '❤️':'🤍'; 
+            // likeButton.textContent = '❤️';
         }
     },
     updateFollowButton(isFollowing) {

@@ -74,6 +74,7 @@ def index(request):
     Render the index page for the network app
     """
     return render(request, "network/index.html", {
+        "username": request.user.username if request.user.is_authenticated else None,
         "title": "Network",
     })
 
@@ -161,6 +162,14 @@ def like_post(request, post_id):
     """
     Like a post by the current user
     """
+
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "Login required to like posts."
+           # "redirect": reverse("login")
+        }, status=401)
+
+
     if request.method == "POST":
         try:
             post = Post.objects.get(id=post_id)
@@ -188,7 +197,12 @@ def like_post(request, post_id):
                 "post_id": post_id,
                 "like_count": like_count
             }, status=201)
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    return JsonResponse(
+        {
+            "error": "Method not allowed",
+            "status": 405
+         }, 
+        status=405)
     
 
 def post_detail(request, post_id):
@@ -266,11 +280,14 @@ def user_profile(request, username):
             posts_data = []
             for post in posts:
                 like_count = Like.objects.filter(post=post).count()
+                liked_by_user = Like.objects.filter(post=post, user=request.user).exists() if request.user.is_authenticated else False
+
                 posts_data.append({
                     "id": post.id,
                     "content": post.content,
                     "author": post.author.username,
                     "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "liked_by_user": liked_by_user,
                     "like_count": like_count,
                     "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
                 })
@@ -278,7 +295,6 @@ def user_profile(request, username):
             return JsonResponse({
                 "username": user.username,
                 "current_user": request.user.username if request.user.is_authenticated else None,
-                "name": user.get_full_name(),
                 "email": user.email,
                 "following_count": following_count,
                 "followers_count": follwers_count,
@@ -317,8 +333,10 @@ def follow_toggle(request, username):
         if request.user.following.filter(id=user_to_follow.id).exists():
             user_to_follow.followers.remove(request.user)
             current_user.following.remove(user_to_follow)
-            following_count = user_to_follow.followers.count()
-            follower_count = user_to_follow.following.count()
+
+
+            following_count = user_to_follow.following.count()
+            follower_count = user_to_follow.followers.count()
 
             return JsonResponse({
                 "status": HttpResponse.status_code,
@@ -326,12 +344,12 @@ def follow_toggle(request, username):
                 "is_following": False,
                 "following_count": following_count,
                 "follower_count": follower_count
-            })
+            }, status=200)
         else:
-            user_to_follow.following.add(current_user)
             current_user.following.add(user_to_follow)
-            following_count = user_to_follow.followers.count()
-            follower_count = user_to_follow.following.count()
+
+            following_count = user_to_follow.following.count()
+            follower_count = user_to_follow.followers.count()
             return JsonResponse({
                 "status" : HttpResponse.status_code,
                 "message": f"You are now following {user_to_follow.username}",
@@ -403,3 +421,58 @@ def edit_post(request, post_id):
             "post_id": post.id
             }, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@login_required
+def following(request):
+    """
+    Render the following page for the current user
+    """
+    if request.method == "GET":
+        return render(request, "network/following.html", {
+            "username": request.user.username,
+            "title": "Following"
+        })
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@login_required
+def following_posts(request):
+    """
+    Get post from users that the current user is following 
+    except the current user
+    """
+
+    if request.method == "GET":
+        following_users = request.user.following.all()
+        following_posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
+        page_number = request.GET.get("page", 1)
+        paginator = Paginator(following_posts, 10)
+        try:
+            posts = paginator.page(page_number)
+        except Exception as e:
+            return JsonResponse({"error": "Invalid page number"}, status=400)
+
+        posts_data = []
+
+        for post in posts:
+            like_count = Like.objects.filter(post=post).count()
+            like_by_user = Like.objects.filter(post=post, user=request.user).exists()
+            posts_data.append({
+                "id": post.id,
+                "content": post.content,
+                "author": post.author.username,
+                "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "like_count": like_count,
+                "liked_by_user": like_by_user,
+                "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
+            })
+        
+        return JsonResponse({
+            "status": HttpResponse.status_code,
+            "posts": posts_data,
+            "page": {
+                "number": posts.number,
+                "total_pages": paginator.num_pages
+            }
+        })
+

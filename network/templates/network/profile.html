@@ -5,8 +5,9 @@
 {% block body %}
     <div id="profile-container" class="container">
         {% csrf_token %}
-        <div id="profile-header">
-          
+        
+        <div id="profile-header" class="profile-header">
+          <h2>Profile of @{{ username }}</h2>
         </div>
         <br>
         <div id="profile-posts">

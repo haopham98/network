@@ -280,11 +280,14 @@ def user_profile(request, username):
             posts_data = []
             for post in posts:
                 like_count = Like.objects.filter(post=post).count()
+                liked_by_user = Like.objects.filter(post=post, user=request.user).exists() if request.user.is_authenticated else False
+
                 posts_data.append({
                     "id": post.id,
                     "content": post.content,
                     "author": post.author.username,
                     "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "liked_by_user": liked_by_user,
                     "like_count": like_count,
                     "updated_at": post.updated_at.strftime("%Y-%m-%d %H:%M:%S") if post.updated_at else None
                 })
@@ -292,7 +295,6 @@ def user_profile(request, username):
             return JsonResponse({
                 "username": user.username,
                 "current_user": request.user.username if request.user.is_authenticated else None,
-                "name": user.get_full_name(),
                 "email": user.email,
                 "following_count": following_count,
                 "followers_count": follwers_count,
@@ -331,8 +333,10 @@ def follow_toggle(request, username):
         if request.user.following.filter(id=user_to_follow.id).exists():
             user_to_follow.followers.remove(request.user)
             current_user.following.remove(user_to_follow)
-            following_count = user_to_follow.followers.count()
-            follower_count = user_to_follow.following.count()
+
+
+            following_count = user_to_follow.following.count()
+            follower_count = user_to_follow.followers.count()
 
             return JsonResponse({
                 "status": HttpResponse.status_code,
@@ -340,12 +344,12 @@ def follow_toggle(request, username):
                 "is_following": False,
                 "following_count": following_count,
                 "follower_count": follower_count
-            })
+            }, status=200)
         else:
-            user_to_follow.following.add(current_user)
             current_user.following.add(user_to_follow)
-            following_count = user_to_follow.followers.count()
-            follower_count = user_to_follow.following.count()
+
+            following_count = user_to_follow.following.count()
+            follower_count = user_to_follow.followers.count()
             return JsonResponse({
                 "status" : HttpResponse.status_code,
                 "message": f"You are now following {user_to_follow.username}",

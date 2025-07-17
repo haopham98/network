@@ -67,6 +67,55 @@ export class FollowingApp {
     }
 
 
+    renderPagination(currentPage, totalPages) {
+        const paginationControls = DOM.get('#pagination-controls');
+        if (!paginationControls) {
+            console.error('Pagination Controls not found');
+            return;
+        }
+        
+        DOM.clear(paginationControls);
+
+        if (totalPages <= 1) return;
+
+
+        if (currentPage > 1) {
+            const prevButton = DOM.create('button', 'btn btn-primary', 'Previous');
+            prevButton.addEventListener('click', () => {
+                this.loadFollowingPosts(currentPage - 1);
+            })
+            DOM.append(paginationControls, prevButton);
+            
+        }
+
+        for (let page=1; page <= totalPages; page++) {
+            const pageButton = DOM.create('button', 'btn btn-primary', page);
+
+            pageButton.dataset.page = page;
+
+            if (page === currentPage) {
+                pageButton.classList.add('btn-primary');
+            }
+            else {
+                pageButton.classList.add('btn-secondary');
+            }
+
+            pageButton.addEventListener('click', () => {
+                this.loadFollowingPosts(page);
+            })
+
+            DOM.append(paginationControls, pageButton);
+        }
+
+        if (currentPage < totalPages) {
+            const nextButton = DOM.create('button', 'btn btn-primary', 'Next');
+            nextButton.addEventListener('click', () => {
+                this.loadFollowingPosts(currentPage + 1);
+            })
+            DOM.append(paginationControls, nextButton);
+        }
+    }
+
     async loadFollowingPosts(page = this.currentPage) {
         DOM.clear(this.PostContainer);
 
@@ -78,5 +127,8 @@ export class FollowingApp {
                 DOM.append(this.PostContainer, postElement);
             })
         }
+        console.log(response.page.number, response.page.total_pages);
+        this.currentPage = response.page.number || 1;
+        this.renderPagination(this.currentPage, response.page.total_pages);
     }
 }

@@ -214,7 +214,6 @@ export class ProfileApp {
             DOM.append(this.profilePost, postElement);
         });
 
-        console.log('Render pagination for profile posts');
         this.currentPage = response.page.number || 1; 
         this.renderPagination(this.currentPage, response.page.total_pages);
     }
